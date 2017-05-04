@@ -5,6 +5,8 @@ import ReactNative, {
   DeviceEventEmitter,
   Keyboard,
   NativeModules,
+  Dimensions,
+  UIManager,
   InteractionManager
 } from 'react-native';
 
@@ -80,11 +82,18 @@ export default class KeyboardAwareBase extends Component {
       const textInputRefs = this.props.getTextInputRefs();
       textInputRefs.forEach((textInputRef) => {
         if (textInputRef && textInputRef.isFocused()) {
-          setTimeout(() => {
-            this._keyboardAwareView.getScrollResponder().scrollResponderScrollNativeHandleToKeyboard(
-              ReactNative.findNodeHandle(textInputRef), this.props.scrollToInputAdditionalOffset, true);
-          }, 0);
-          return;
+          const refHandle = ReactNative.findNodeHandle(textInputRef);
+          UIManager.measureInWindow(refHandle, (x, y, w, h) => {
+            const bottomOfInput = y + h;
+            const availablespace = Dimensions.get('window').height - this.state.keyboardHeight;
+            const hiddenByKeyboard = bottomOfInput > availablespace;
+
+            if (this.props.scrollToInputIfNotHidden || hiddenByKeyboard) {
+              this._keyboardAwareView.getScrollResponder().scrollResponderScrollNativeHandleToKeyboard(
+                  refHandle, this.props.scrollToInputAdditionalOffset, true
+              );
+            }
+          });
         }
       });
     }
@@ -138,10 +147,12 @@ export default class KeyboardAwareBase extends Component {
 KeyboardAwareBase.propTypes = {
   startScrolledToBottom: PropTypes.bool,
   scrollToBottomOnKBShow: PropTypes.bool,
-  scrollToInputAdditionalOffset: PropTypes.number
+  scrollToInputAdditionalOffset: PropTypes.number,
+  scrollToInputIfNotHidden: PropTypes.bool,
 };
 KeyboardAwareBase.defaultProps = {
   startScrolledToBottom: false,
   scrollToBottomOnKBShow: false,
-  scrollToInputAdditionalOffset: 75
+  scrollToInputAdditionalOffset: 75,
+  scrollToInputIfNotHidden: true,
 };
