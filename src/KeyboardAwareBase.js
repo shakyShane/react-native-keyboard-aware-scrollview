@@ -76,27 +76,50 @@ export default class KeyboardAwareBase extends Component {
   componentWillUnmount() {
     this._removeKeyboardListeners();
   }
-  
+
   _scrollToFocusedTextInput() {
     if (this.props.getTextInputRefs) {
       const textInputRefs = this.props.getTextInputRefs();
       textInputRefs.forEach((textInputRef) => {
-        if (textInputRef && textInputRef.isFocused()) {
-          const refHandle = ReactNative.findNodeHandle(textInputRef);
-          UIManager.measureInWindow(refHandle, (x, y, w, h) => {
-            const bottomOfInput = y + h;
-            const availablespace = Dimensions.get('window').height - this.state.keyboardHeight;
-            const hiddenByKeyboard = bottomOfInput > availablespace;
-
-            if (this.props.scrollToInputIfNotHidden || hiddenByKeyboard) {
-              this._keyboardAwareView.getScrollResponder().scrollResponderScrollNativeHandleToKeyboard(
-                  refHandle, this.props.scrollToInputAdditionalOffset, true
-              );
-            }
-          });
+        if (!textInputRef) {
+          return;
+        }
+        if (typeof textInputRef.isFocused === 'function') {
+          this._performScroll(textInputRef, textInputRef);
+        } else if (textInputRef && textInputRef.scrollTarget && textInputRef.textInput) {
+          this._performScroll(textInputRef.textInput, textInputRef.scrollTarget);
         }
       });
     }
+  }
+
+  _performScroll(textInputRef, scrollTargetRef) {
+    const scrollTargetHandle = ReactNative.findNodeHandle(scrollTargetRef);
+
+    if (!textInputRef.isFocused()) {
+      return;
+    }
+
+    if (this.props.scrollToInputIfNotHidden) {
+      return setTimeout(() => {
+        this._keyboardAwareView.getScrollResponder().scrollResponderScrollNativeHandleToKeyboard(
+            scrollTargetHandle, this.props.scrollToInputAdditionalOffset, true)
+      }, 0)
+    }
+
+    setTimeout(() => {
+      UIManager.measureInWindow(scrollTargetHandle, (x, y, w, h) => {
+        const bottomOfInput = y + h;
+        const availablespace = Dimensions.get('window').height - this.state.keyboardHeight;
+        const hiddenByKeyboard = bottomOfInput > availablespace;
+
+        if (hiddenByKeyboard) {
+          this._keyboardAwareView.getScrollResponder().scrollResponderScrollNativeHandleToKeyboard(
+              scrollTargetHandle, this.props.scrollToInputAdditionalOffset, true
+          );
+        }
+      });
+    }, 100);
   }
   
   _onKeyboardWillShow(event) {
