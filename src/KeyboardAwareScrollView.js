@@ -8,9 +8,13 @@ import KeyboardAwareBase from './KeyboardAwareBase'
 
 export default class KeyboardAwareScrollView extends KeyboardAwareBase {
   render() {
+    const contentInset = {
+        bottom: this.state.keyboardHeight,
+        top: this.props.statusBar ? -20 : 0
+    };
     return (
       <ScrollView {...this.props} {...this.style}
-        contentInset={{bottom: this.state.keyboardHeight}}
+        contentInset={contentInset}
         ref={(r) => {
           this._keyboardAwareView = r;
         }}
@@ -34,7 +38,8 @@ export default class KeyboardAwareScrollView extends KeyboardAwareBase {
 
 KeyboardAwareScrollView.propTypes = {
   getTextInputRefs: PropTypes.func,
-  onScroll: PropTypes.func
+  onScroll: PropTypes.func,
+  statusBar: PropTypes.bool
 };
 KeyboardAwareScrollView.defaultProps = {
   ...KeyboardAwareBase.defaultProps,
