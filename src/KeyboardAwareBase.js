@@ -17,6 +17,7 @@ export default class KeyboardAwareBase extends Component {
     super(props);
     this._bind('_onKeyboardWillShow', '_onKeyboardWillHide', '_addKeyboardEventListeners', '_removeKeyboardListeners', '_scrollToFocusedTextInput', '_onKeyboardAwareViewLayout', 'scrollToBottom', 'scrollBottomOnNextSizeChange');
     this.state = {keyboardHeight: 0};
+    this._originalScrollPosition = 0;
   }
   
   _bind(...methods) {
@@ -123,14 +124,15 @@ export default class KeyboardAwareBase extends Component {
   }
   
   _onKeyboardWillShow(event) {
+    this._originalScrollPosition = this._keyboardAwareView.contentOffset.y;
     this._scrollToFocusedTextInput();
     
     const newKeyboardHeight = event.endCoordinates.height;
     if (this.state.keyboardHeight === newKeyboardHeight) {
       return;
     }
-    
-    this.setState({keyboardHeight: newKeyboardHeight});
+
+    this.setState({keyboardHeight: newKeyboardHeight });
 
     if(this.props.scrollToBottomOnKBShow) {
       this.scrollToBottom();
@@ -143,7 +145,14 @@ export default class KeyboardAwareBase extends Component {
 
     const hasYOffset = this._keyboardAwareView && this._keyboardAwareView.contentOffset && this._keyboardAwareView.contentOffset.y !== undefined;
     const yOffset = hasYOffset ? Math.max(this._keyboardAwareView.contentOffset.y - keyboardHeight, 0) : 0;
-    this._keyboardAwareView.scrollTo({x: 0, y: yOffset, animated: true});
+
+    if (this.props.scrollBackToOriginalPosition) {
+        setTimeout(() => {
+            this._keyboardAwareView.scrollTo({x: 0, y: this._originalScrollPosition, animated: true});
+        }, 0)
+    } else {
+        this._keyboardAwareView.scrollTo({x: 0, y: yOffset, animated: true});
+    }
   }
 
   scrollBottomOnNextSizeChange() {
@@ -172,10 +181,12 @@ KeyboardAwareBase.propTypes = {
   scrollToBottomOnKBShow: PropTypes.bool,
   scrollToInputAdditionalOffset: PropTypes.number,
   scrollToInputIfNotHidden: PropTypes.bool,
+  scrollBackToOriginalPosition: PropTypes.bool,
 };
 KeyboardAwareBase.defaultProps = {
   startScrolledToBottom: false,
   scrollToBottomOnKBShow: false,
   scrollToInputAdditionalOffset: 75,
   scrollToInputIfNotHidden: true,
+  scrollBackToOriginalPosition: false,
 };
